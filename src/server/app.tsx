@@ -58,7 +58,41 @@ const headers = {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     if (IS_PRERENDER) {
-      const prerendered = await prerender(<App DB={env.DB} />);
+      // let's patch DB.prepare.all to have a tick
+      // we probably want to do this to ALL async methods in some way
+      const _prepare = env.DB.prepare.bind(env.DB);
+      env.DB.prepare = (...args: Parameters<typeof _prepare>) => {
+        const prepared = _prepare(...args);
+        const _all = prepared.all.bind(prepared);
+        prepared.all = async (...args: Parameters<typeof _all>) => {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+          return _all(...args);
+        };
+        return prepared;
+      };
+
+      type Prerendered = {
+        postponed: Record<string, unknown>;
+        prelude: ReadableStream;
+      };
+
+      const controller = new AbortController();
+      const prerendered = await new Promise<Prerendered>((resolve, reject) => {
+        let result: Prerendered;
+        setImmediate(() => {
+          try {
+            result = prerender(<App DB={env.DB} />, {
+              signal: controller.signal,
+            });
+          } catch (error) {
+            reject(error);
+          }
+        });
+        setImmediate(() => {
+          controller.abort();
+          resolve(result);
+        });
+      });
 
       // prerendered.prelude is a ReadableStream, so we need to convert it to a string
       const prelude = await new Response(prerendered.prelude).text();

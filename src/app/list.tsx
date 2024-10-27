@@ -1,17 +1,9 @@
-// @ts-expect-error no types for this yet
-import { unstable_postpone } from 'react';
 import { suspend } from 'suspend-react';
 import { Pokemon, PokemonList } from './components';
 
 declare const IS_PRERENDER: boolean | undefined;
 declare const IS_CLIENT: boolean | undefined;
 export default function List({ DB }: { DB?: D1Database }) {
-  // eslint-disable-next-line unicorn/no-typeof-undefined
-  if (typeof IS_PRERENDER !== 'undefined' && IS_PRERENDER) {
-    // TODO: trigger this automatically if any i/o is made
-    unstable_postpone();
-  }
-
   const results = suspend(async () => {
     if (typeof window !== 'undefined') {
       // @ts-expect-error we've inlined the data in the component
