@@ -1,7 +1,6 @@
 import { suspend } from 'suspend-react';
 import { Pokemon, PokemonList } from './components';
 
-declare const IS_PRERENDER: boolean | undefined;
 declare const IS_CLIENT: boolean | undefined;
 export default function List({ DB }: { DB?: D1Database }) {
   const results = suspend(async () => {
